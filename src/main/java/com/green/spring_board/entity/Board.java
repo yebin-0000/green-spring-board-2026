@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "boards")
 @Getter
@@ -26,5 +28,11 @@ public class Board {
 
     @Column(nullable = false)
     private int hits;
+
+    @Column(nullable = false, insertable = false, updatable = false)
+    private LocalDateTime createdDatetime;
+
+    @Column(nullable = false, insertable = false, updatable = false)
+    private LocalDateTime updatedDatetime;
 
 }
