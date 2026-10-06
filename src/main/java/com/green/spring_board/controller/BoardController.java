@@ -97,6 +97,10 @@ public class BoardController {
         if (session == null || session.getAttribute("userId") == null) {
             throw new  UnauthenticatedException("로그인이 필요합니다");
         }
+        // TODO :: 본인 확인
+        //삭제 성공 시 응답 방법
+        // 1. 200 + ApiResponse<Void>
+        // 2. 204(No Content) + No Body
         boardService.deleteBoard(id);
         return ResponseEntity.ok(ApiResponse.ok());
 
