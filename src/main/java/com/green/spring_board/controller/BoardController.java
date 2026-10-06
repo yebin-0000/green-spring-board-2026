@@ -1,6 +1,7 @@
 package com.green.spring_board.controller;
 
 import com.green.spring_board.dto.BoardResponse;
+import com.green.spring_board.dto.BoardUpdateRequest;
 import com.green.spring_board.exceptions.ResourceNotFoundException;
 import com.green.spring_board.exceptions.UserRequestException;
 import com.green.spring_board.dto.BoardCreateRequest;
@@ -8,6 +9,7 @@ import com.green.spring_board.service.BoardService;
 import com.green.spring_board.entity.Board;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +58,7 @@ public class BoardController {
     // 돌려줄 값이 없을 때는 돌려줄 값이 없다는 것도 명시해줘야 함
     @PostMapping
     public ResponseEntity<Void> createBoard(
-            @RequestBody BoardCreateRequest boardCreateRequest,
+            @Valid @RequestBody BoardCreateRequest boardCreateRequest,
             HttpServletRequest httpServletRequest
     ) {
 
@@ -89,11 +91,12 @@ public class BoardController {
     //수정
     @PatchMapping("/{id}")
     public ResponseEntity<Void> updateBoard(
+            @Valid
             @PathVariable int id,
-            @RequestBody BoardCreateRequest boardCreateRequest
+            @RequestBody BoardUpdateRequest boardUpdateRequest
     ){
         try {
-            boardService.updateBoard(id, boardCreateRequest);
+            boardService.updateBoard(id, boardUpdateRequest);
             return ResponseEntity.ok().build();
 
         }catch (ResourceNotFoundException e) {

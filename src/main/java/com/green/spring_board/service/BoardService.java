@@ -1,6 +1,7 @@
 package com.green.spring_board.service;
 
 import com.green.spring_board.dto.BoardResponse;
+import com.green.spring_board.dto.BoardUpdateRequest;
 import com.green.spring_board.entity.User;
 import com.green.spring_board.exceptions.ResourceNotFoundException;
 import com.green.spring_board.exceptions.UnauthenticatedException;
@@ -103,7 +104,7 @@ public class BoardService {
         return savedBoard.getId();
     }
     //수정
-    public void updateBoard(int id, BoardCreateRequest boardCreateRequest
+    public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest
     ){
         Optional<Board> optionalBoards = boardRepository.findById(id);
         if (optionalBoards.isEmpty()) {
@@ -113,12 +114,12 @@ public class BoardService {
         Board board = optionalBoards.get();
 
 
-        if (boardCreateRequest.getTitle() != null && !boardCreateRequest.getTitle().isBlank()) {
-                board.setTitle(boardCreateRequest.getTitle());
+        if (boardUpdateRequest.getTitle() != null && !boardUpdateRequest.getTitle().isBlank()) {
+                board.setTitle(boardUpdateRequest.getTitle());
             }
 
-        if (boardCreateRequest.getContent() !=null && !boardCreateRequest.getContent().isBlank()) {
-                board.setContent(boardCreateRequest.getContent());
+        if (boardUpdateRequest.getContent() !=null && !boardUpdateRequest.getContent().isBlank()) {
+                board.setContent(boardUpdateRequest.getContent());
             }
             boardRepository.save(board);
 
