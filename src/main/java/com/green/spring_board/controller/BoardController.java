@@ -1,5 +1,6 @@
 package com.green.spring_board.controller;
 
+import com.green.spring_board.dto.ApiResponse;
 import com.green.spring_board.dto.BoardResponse;
 import com.green.spring_board.dto.BoardUpdateRequest;
 import com.green.spring_board.exceptions.UnauthenticatedException;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,32 +25,31 @@ import java.util.List;
 public class BoardController {
     private final BoardService boardService;
 
-
     //전체 조회
     @GetMapping
-    public ResponseEntity<List<BoardResponse>> getBoards() {
+    public ResponseEntity<ApiResponse<List<BoardResponse>>> getBoards() {
         return ResponseEntity.ok(
-                boardService.getAllBoards()
+               ApiResponse.ok(boardService.getAllBoards())
         );
 
     }
 
     // 상세 조회
     @GetMapping("/{id}")
-    public ResponseEntity<BoardResponse> getBoardsDetail(@PathVariable int id) {
+    public ResponseEntity<ApiResponse<BoardResponse>> getBoardsDetail(@PathVariable int id) {
 
             BoardResponse board = boardService.getBoard(id);
             if (board == null) {
                 return ResponseEntity.notFound().build();
         }
-            return ResponseEntity.ok(board);
+            return ResponseEntity.ok(ApiResponse.ok(board));
 
     }
 
     //삽입
     // 돌려줄 값이 없을 때는 돌려줄 값이 없다는 것도 명시해줘야 함
     @PostMapping
-    public ResponseEntity<Void> createBoard(
+    public ResponseEntity<ApiResponse<Void>> createBoard(
             @Valid @RequestBody BoardCreateRequest boardCreateRequest,
             HttpServletRequest httpServletRequest
     ) {
@@ -62,13 +63,13 @@ public class BoardController {
             int userId = (int) session.getAttribute("userId");
             int newBoardId = boardService.createBoard(boardCreateRequest, userId);
             URI location = URI.create("/api/board/" + newBoardId);
-            return ResponseEntity.created(location).build();
+            return ResponseEntity.created(location).body(ApiResponse.ok());
 
     }
 
     //수정
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> updateBoard(
+    public ResponseEntity<ApiResponse<Void>> updateBoard(
             @Valid
             @PathVariable int id,
             @RequestBody BoardUpdateRequest boardUpdateRequest,
@@ -80,14 +81,14 @@ public class BoardController {
             throw new  UnauthenticatedException("로그인이 필요합니다");
         }
         boardService.updateBoard(id, boardUpdateRequest);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.ok());
 
     }
 
 
     //삭제
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBoard(
+    public ResponseEntity <ApiResponse<Void>> deleteBoard(
             @PathVariable int id,
             HttpServletRequest httpServletRequest
     ) {
@@ -97,7 +98,7 @@ public class BoardController {
             throw new  UnauthenticatedException("로그인이 필요합니다");
         }
         boardService.deleteBoard(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.ok());
 
     }
 }
