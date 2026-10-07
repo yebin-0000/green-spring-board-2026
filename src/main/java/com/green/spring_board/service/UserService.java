@@ -90,6 +90,7 @@ public class UserService {
             user.setNickname(userUpdateRequest.getNickname());
         }
     }
+
     public void deleteUser(int userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {

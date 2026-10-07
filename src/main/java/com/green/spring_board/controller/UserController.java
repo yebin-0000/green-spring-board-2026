@@ -89,10 +89,9 @@ public class UserController {
 
         // 2. 세션에서 현재 유저의 ID를 꺼냄
         int userId = (int) session.getAttribute("userId");
-
-            // 3. 서비스로 유저 ID와 수정할 데이터 전달
-            userService.updateUserInfo(userId, userUpdateRequest);
-            return ResponseEntity.ok(ApiResponse.ok());
+        // 3. 서비스로 유저 ID와 수정할 데이터 전달
+        userService.updateUserInfo(userId, userUpdateRequest);
+        return ResponseEntity.ok(ApiResponse.ok());
 
 
     }
@@ -104,9 +103,9 @@ public class UserController {
             throw new  UnauthenticatedException("로그인이 필요합니다");
         }
         int userId = (int) session.getAttribute("userId");
-
         //1. DB삭제
         userService.deleteUser(userId);
+        //boardService.deleteBoard(id, userId);
         //2. 세션 비활성화
         session.invalidate();
 

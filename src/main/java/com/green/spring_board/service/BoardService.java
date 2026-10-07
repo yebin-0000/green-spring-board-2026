@@ -2,12 +2,15 @@ package com.green.spring_board.service;
 
 import com.green.spring_board.dto.BoardResponse;
 import com.green.spring_board.dto.BoardUpdateRequest;
+import com.green.spring_board.entity.Like;
 import com.green.spring_board.entity.User;
+import com.green.spring_board.exceptions.AuthorizationFailureException;
 import com.green.spring_board.exceptions.ResourceNotFoundException;
 import com.green.spring_board.exceptions.UnauthenticatedException;
 import com.green.spring_board.dto.BoardCreateRequest;
 import com.green.spring_board.repository.BoardRepository;
 import com.green.spring_board.entity.Board;
+import com.green.spring_board.repository.LikeRepository;
 import com.green.spring_board.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ import java.util.Optional;
 public class BoardService {
     private BoardRepository boardRepository;
     private UserRepository userRepository;
+    private LikeRepository likeRepository;
 
     //전체 조회
     public List<BoardResponse> getAllBoards() {
@@ -30,6 +34,22 @@ public class BoardService {
         //1. List<BoardResponse> 형태의 빈 리스트 생성
         List<BoardResponse> boardResponses = new ArrayList<>();
 
+        //.3 1번에서 만든 리스트에 추가
+        return convertToBoardResponse(boards);
+    }
+
+    // 내 게시글 조회
+    public List<BoardResponse> getMyBoards(int userid) {
+        List<Board> boards = boardRepository.findByUserId(userid);
+
+        //1. List<BoardResponse> 형태의 빈 리스트 생성
+        List<BoardResponse> boardResponses = new ArrayList<>();
+
+        return convertToBoardResponse(boards);
+    }
+    public List<BoardResponse> convertToBoardResponse(List<Board> boards) {
+        //1. List<BoardResponse> 형태의 빈 리스트 생성
+        List<BoardResponse> boardResponses = new ArrayList<>();
         //2. Board 개수만큼 반복하며 new BoardResponse 생성
         for (Board board : boards) {
             boardResponses.add(
@@ -44,12 +64,9 @@ public class BoardService {
                             board.getUpdatedDatetime()
                     )
             );
+
         }
-
-        //.3 1번에서 만든 리스트에 추가
         return boardResponses;
-
-
     }
     //상세 조회
     public BoardResponse getBoard(int id) {
@@ -95,7 +112,7 @@ public class BoardService {
         return savedBoard.getId();
     }
     //수정
-    public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest
+    public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest, int userId
     ){
         Optional<Board> optionalBoards = boardRepository.findById(id);
         if (optionalBoards.isEmpty()) {
@@ -103,6 +120,12 @@ public class BoardService {
             throw new ResourceNotFoundException("게시글을 찾을 수 없습니다");
         }
         Board board = optionalBoards.get();
+
+        // 작성자/ 요청자 동일 여부 확인
+        if (board.getUser().getId() != userId) {
+            //예외
+            throw new AuthorizationFailureException("게시글 작업 권한이 없습니다");
+        }
 
 
         if (boardUpdateRequest.getTitle() != null && !boardUpdateRequest.getTitle().isBlank()) {
@@ -117,15 +140,47 @@ public class BoardService {
 
         }
         // 삭제
-        public void deleteBoard(int id) {
-            boolean isExist = boardRepository.existsById(id);
+        public void deleteBoard(int id, int userId) {
+           Optional<Board> optionalBoard  = boardRepository.findById(id);
 
-            if (!isExist) {
-
+            if (optionalBoard.isEmpty()) {
                 throw new ResourceNotFoundException("게시글을 찾을 수 없습니다");
+            }
+            Board board = optionalBoard.get();
 
+            if (board.getUser().getId() != userId) {
+                //예외
+                throw new AuthorizationFailureException("게시글 작업 권한이 없습니다");
             }
             boardRepository.deleteById(id);
 
+        }
+
+        public void pressLike(int id, int userId) {
+            //게시글 존제 여부 확인
+            Optional<Board> optionalBoard  = boardRepository.findById(id);
+            if (optionalBoard.isEmpty()) {
+                throw new ResourceNotFoundException("존재하지 않는 게시물입니다");
+            }
+            Board board = optionalBoard.get();
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isEmpty()) {
+                throw new ResourceNotFoundException("존재하지 않는 유저입니다");
+            }
+            User user = optionalUser.get();
+
+            //1. 이 유저와 보드로 동일한 좋아요가 있는지 확인
+            Optional<Like> likeOptional = likeRepository.findByUserIdAndBoardId(userId, id);
+            if (likeOptional.isEmpty()) {
+                //3. 없으면 좋아요 추가
+                Like like = new Like();
+                like.setUser(user);
+                like.setBoard(board);
+                likeRepository.save(like);
+            } else {
+                //2. 있으면 삭제
+                Like like = likeOptional.get();
+                likeRepository.deleteById(like.getId());
+            }
         }
 }
