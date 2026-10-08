@@ -70,9 +70,14 @@ public class CommentService {
     }
     @Transactional
     public void updateComment(int id, CommentUpdateRequest commentUpdateRequest, int userId) {
-        //게시글 존재 확인
+        //댓글 존재 확인
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다"));
+
+        // 이미 삭제된 댓글인지 확인
+        if (comment.isDeleted()) {
+            throw new ResourceNotFoundException("이미 삭제된 댓글입니다");
+        }
 
         // 댓글 작성자, 현재 사용자 일치 확인
         if (comment.getUser().getId() != userId) {
@@ -85,9 +90,14 @@ public class CommentService {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다"));
 
+        if (comment.isDeleted()) {
+            throw new ResourceNotFoundException("이미 삭제된 댓글입니다");
+        }
+
         if (comment.getUser().getId() != userId) {
             throw new IllegalStateException("댓글을 삭제할 권한이 없습니다");
         }
+        comment.setDeleted(true);
         commentRepository.delete(comment);
     }
 }

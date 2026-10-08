@@ -45,7 +45,7 @@ public class BoardService {
             throw new InvalidStateException("잘못된 정렬 옵셥입니다");
         }
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Board> boards = boardRepository.findAll(pageable);
+        Page<Board> boards = boardRepository.findByIsDeletedFalse(pageable);
         // order: latest, likes, views
 
         //1. List<BoardResponse> 형태의 빈 리스트 생성
@@ -75,7 +75,7 @@ public class BoardService {
     }
     // 내 게시글 조회
     public List<BoardResponse> getMyBoards(int userId) {
-        List<Board> boards = boardRepository.findByUserId(userId);
+        List<Board> boards = boardRepository.findByUserIdAndIsDeletedFalse(userId);
 
         //1. List<BoardResponse> 형태의 빈 리스트 생성
         List<BoardResponse> boardResponses = new ArrayList<>();
@@ -109,6 +109,10 @@ public class BoardService {
             throw new ResourceNotFoundException("요청한 게시글을 찾지 못했습니다");
         }
         Board board = optionalBoard.get();
+
+        if (board.isDeleted()) {
+            throw new ResourceNotFoundException("삭제된 게시글입니다");
+        }
 
 
         User user = board.getUser();
@@ -191,7 +195,8 @@ public class BoardService {
                 //예외
                 throw new AuthorizationFailureException("게시글 작업 권한이 없습니다");
             }
-            boardRepository.deleteById(id);
+            board.setDeleted(true);
+            boardRepository.save(board);
 
         }
 

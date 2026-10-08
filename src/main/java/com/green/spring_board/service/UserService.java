@@ -8,6 +8,7 @@ import com.green.spring_board.entity.User;
 import com.green.spring_board.exceptions.ResourceConflictException;
 import com.green.spring_board.exceptions.ResourceNotFoundException;
 import com.green.spring_board.exceptions.UnauthenticatedException;
+import com.green.spring_board.global.UserState;
 import com.green.spring_board.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -39,6 +40,7 @@ public class UserService {
         user.setEmail(signupRequest.getEmail());
         user.setPassword(hashedPassword);
         user.setNickname(signupRequest.getNickname());
+        user.setState(UserState.ACTIVE);
         userRepository.save(user);
     }
     public int login(LoginRequest loginRequest) {
@@ -47,7 +49,12 @@ public class UserService {
         if (userOptional.isEmpty()) {
             throw new ResourceNotFoundException("User not found");
         }
-        User user = userOptional.get(); //이 이메일의 사용자 정보
+        User user = userOptional.get();
+
+        //이 이메일의 사용자 정보
+        if (user.getState() == UserState.QUITTED) {
+            throw new ResourceNotFoundException("탈퇴된 회원입니다");
+        }
 
         //2. 비밀번호가 올바른지 확인
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
@@ -63,6 +70,10 @@ public class UserService {
             throw new ResourceNotFoundException("User not found");
         }
         User user = userOptional.get();
+
+        if (user.getState() == UserState.QUITTED) {
+            throw new ResourceNotFoundException("탈퇴된 회원입니다");
+        }
 
         //4. DB에서 이 유저의 닉네임과 이메일을 받아옴
         String email = user.getEmail();
@@ -82,6 +93,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        if (user.getState() == UserState.QUITTED) {
+            throw new ResourceNotFoundException("탈퇴된 회원입니다");
+        }
+
         if (userUpdateRequest.getEmail() != null && !userUpdateRequest.getEmail().isBlank()) {
             user.setEmail(userUpdateRequest.getEmail());
         }
@@ -100,6 +115,8 @@ public class UserService {
         User user = userOptional.get();
 
         //2. DB에서 해당 유저 정보를 삭제함
-        userRepository.delete(user);
+
+        user.setState(UserState.QUITTED);
+        userRepository.save(user);
     }
 }
