@@ -1,15 +1,13 @@
 package com.green.spring_board.controller;
 
-import com.green.spring_board.dto.ApiResponse;
-import com.green.spring_board.dto.BoardResponse;
-import com.green.spring_board.dto.BoardUpdateRequest;
+import com.green.spring_board.dto.*;
 import com.green.spring_board.exceptions.UnauthenticatedException;
-import com.green.spring_board.dto.BoardCreateRequest;
 import com.green.spring_board.service.BoardService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +25,22 @@ public class BoardController {
 
     //전체 조회
     @GetMapping
-    public ResponseEntity<ApiResponse<List<BoardResponse>>> getBoards() {
+    public ResponseEntity<ApiResponse<Page<BoardResponse>>> getBoards(
+            HttpServletRequest httpServletRequest,
+            //지금 내가 몇 번째 페이지에 있는지, 한 번에 몇 개의 컨텐츠를 보여줄 건지
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "latest") String order
+    ) {
+        HttpSession session = httpServletRequest.getSession(false);
+
+        if (session == null || session.getAttribute("userId") == null) {
+            throw new UnauthenticatedException("로그인이 필요합니다");
+        }
+        int userId =(int) session.getAttribute("userId");
+
         return ResponseEntity.ok(
-                ApiResponse.ok(boardService.getAllBoards())
+                ApiResponse.ok(boardService.getAllBoards(userId, page, size, order))
         );
 
     }
@@ -37,7 +48,7 @@ public class BoardController {
     //내 게시글 조회
     @GetMapping("/my-boards")
     public ResponseEntity<ApiResponse<List<BoardResponse>>> getMyBoards(
-            //@PathVariable int Userid
+            //@PathVariable int Userid 경로가 노출됨
             HttpServletRequest httpServletRequest
     ) {
         HttpSession session = httpServletRequest.getSession(false);
@@ -55,14 +66,22 @@ public class BoardController {
 
     // 상세 조회
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BoardResponse>> getBoardDetail(@PathVariable int id) {
+    public ResponseEntity<ApiResponse<BoardResponse>> getBoardDetail(
+            @PathVariable int id,
+            HttpServletRequest httpServletRequest
+    ) {
+        HttpSession session = httpServletRequest.getSession(false);
 
-        BoardResponse board = boardService.getBoard(id);
+        int userId = -1;
+        if (session != null && session.getAttribute("userId") != null) {
+            userId = (int) session.getAttribute("userId");
+        }
+
+        BoardResponse board = boardService.getBoard(id, userId);
         return ResponseEntity.ok(
                 ApiResponse.ok(board)
         );
     }
-
 
     //삽입
     // 돌려줄 값이 없을 때는 돌려줄 값이 없다는 것도 명시해줘야 함
@@ -144,11 +163,21 @@ public class BoardController {
         boardService.pressLike(id, userId);
         return ResponseEntity.ok(ApiResponse.ok());
 
-        //좋아요 기능 발전시키기
-        //다시 눌렀을 때 좋아요 취소
-        //게시글 조회시 좋아요 수
-        //상세 눌렀을 때 좋아요 누른 유저들 나타내기
         //내가 이 게시글에 좋아요를 눌렀는지
+    }
+    //상세 눌렀을 때 좋아요 누른 유저들 나타내기
+    @GetMapping("/like/{id}")
+    public ResponseEntity<ApiResponse<LikeDetailResponse>> viewLikeDetails(
+            @PathVariable int id,
+            HttpServletRequest httpServletRequest
+    ) {
+        HttpSession session = httpServletRequest.getSession(false);
 
+        if (session == null || session.getAttribute("userId") == null) {
+            throw new UnauthenticatedException("로그인이 필요합니다");
+        }
+        //이 게시글에 좋아요 누른 유저들의 유저명
+        LikeDetailResponse response = boardService.getLikeDetail(id);
+        return  ResponseEntity.ok(ApiResponse.ok(response));
     }
 }
