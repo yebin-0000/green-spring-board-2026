@@ -33,6 +33,13 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	implementation 'org.springframework.security:spring-security-crypto'
 
+	// Spring Security
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	// 구현할 때 사용할 수 있는 기능들 로드. 적용한다고 기능적으로 바뀌는 것은 없음
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
 	// Swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
 }
