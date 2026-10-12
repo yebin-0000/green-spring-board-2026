@@ -22,24 +22,21 @@ public class UserController {
 
     @Operation(summary = "회원가입 API", description = "회원가입 할 때 씀")
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Void>> signup(@Valid @RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<ApiResponse<Void>> signup(
+            @Valid @RequestBody SignupRequest signupRequest) {
 
             userService.signup(signupRequest);
             return ResponseEntity.ok(ApiResponse.ok());
 
     }
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Void>> login(
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest httpServletRequest) {
         //DTO Valid: 입력값에 대한 검증 기능
 
-            int userId = userService.login(loginRequest);
-            //세션 작업
-            HttpSession session = httpServletRequest.getSession();//장부 정보 새로 만들기
-            httpServletRequest.changeSessionId();
-            session.setAttribute("userId", userId); //원하는 정보 새로 만들기(추가)
-            return ResponseEntity.ok(ApiResponse.ok());
+            LoginResponse result = userService.login(loginRequest);
+            return ResponseEntity.ok(ApiResponse.ok(result));
 
 
     }

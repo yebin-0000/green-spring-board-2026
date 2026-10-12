@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
+
+// 토큰에  적힌 이름을 가지고 장부(DB)를 뒤져 실제 살아있는 회원인지 대조
 public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 

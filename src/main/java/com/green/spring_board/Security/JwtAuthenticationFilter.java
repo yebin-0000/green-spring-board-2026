@@ -17,6 +17,8 @@ import java.io.IOException;
 
 @Component
 @AllArgsConstructor
+
+// 인증 - 엑세스 토큰 확인 후
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final UserDetailsService userDetailsService;
