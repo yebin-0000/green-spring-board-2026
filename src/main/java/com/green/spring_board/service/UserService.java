@@ -2,27 +2,34 @@ package com.green.spring_board.service;
 
 import com.green.spring_board.Security.JwtTokenProvider;
 import com.green.spring_board.dto.*;
+import com.green.spring_board.entity.RefreshToken;
 import com.green.spring_board.entity.User;
 import com.green.spring_board.exceptions.ResourceConflictException;
 import com.green.spring_board.exceptions.ResourceNotFoundException;
 import com.green.spring_board.exceptions.UnauthenticatedException;
 import com.green.spring_board.global.UserState;
+import com.green.spring_board.repository.RefreshTokenRepository;
 import com.green.spring_board.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Optional;
 
 @Service
 @AllArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder; /*= new BCryptPasswordEncoder() @Bean 해놨기 때문에 필요없어짐*/
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -52,6 +59,7 @@ public class UserService {
         user.setState(UserState.ACTIVE);
         userRepository.save(user);
     }
+    @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
 
         try {
@@ -80,24 +88,32 @@ public class UserService {
 
         //엑세스 토큰 발급
         String accessToken = tokenProvider.generateAccessToken(user.getUsername());
+        String refreshToken = tokenProvider.generateRefreshToken(user.getUsername());
 
+        //1. 해당 유저의 기존 리프레시 토큰(들) 삭제
+        // 현재 deleteByUserId라는 유저 아이드를 기준으로 리프레시 토큰을 삭제해주는 기능이 있지만
+        // 해당 기능을 사용하려면 Transaction이 필요해 임시 우회
+        // List<RefreshToken> tokens = refreshTokenRepository.findByUserId(user.getId());
+        refreshTokenRepository.deleteByUserId(user.getId());
+        //2. 해당 유저의 신규 리프레시 토큰 저장
+        Date expiration = tokenProvider.getExpiration(refreshToken);
+        LocalDateTime expirationDatetime = expiration.toInstant().atZone(
+                ZoneId.systemDefault()).toLocalDateTime();
 
+        RefreshToken refresh = new RefreshToken();
+        refresh.setUser(user);
+        refresh.setToken(refreshToken);
+        refresh.setExpirationDateTime(expirationDatetime);
+        refreshTokenRepository.save(refresh);
         //3. 로그인 성공
-        return new LoginResponse(accessToken);
+        return new LoginResponse(accessToken, refreshToken);
     }
     //3. 유저 아이디로 DB 조회함
-    public MyInfoResponse getUserInfo(int userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty()) {
-            throw new ResourceNotFoundException("User not found");
-        }
-        User user = userOptional.get();
+    public MyInfoResponse getUserInfo() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username);
 
-        if (user.getState() == UserState.QUITTED) {
-            throw new ResourceNotFoundException("탈퇴된 회원입니다");
-        }
-
-        //4. DB에서 이 유저의 닉네임과 이메일을 받아옴
+          //4. DB에서 이 유저의 닉네임과 이메일을 받아옴
         String email = user.getEmail();
         String nickname = user.getNickname();
 
@@ -111,13 +127,10 @@ public class UserService {
     }
 
     @Transactional
-    public void updateUserInfo(int userId, UserUpdateRequest userUpdateRequest) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public void updateUserInfo(UserUpdateRequest userUpdateRequest) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username);
 
-        if (user.getState() == UserState.QUITTED) {
-            throw new ResourceNotFoundException("탈퇴된 회원입니다");
-        }
 
         if (userUpdateRequest.getEmail() != null && !userUpdateRequest.getEmail().isBlank()) {
             user.setEmail(userUpdateRequest.getEmail());
@@ -128,15 +141,9 @@ public class UserService {
         }
     }
 
-    public void deleteUser(int userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty()) {
-            throw new ResourceNotFoundException("User not found");
-        }
-        //1. 상자에서 유저 객체를 꺼냄
-        User user = userOptional.get();
-
-        //2. DB에서 해당 유저 정보를 삭제함
+    public void deleteUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username);
 
         user.setState(UserState.QUITTED);
         userRepository.save(user);

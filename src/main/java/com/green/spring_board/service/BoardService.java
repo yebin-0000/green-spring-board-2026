@@ -16,6 +16,7 @@ import com.green.spring_board.repository.LikeRepository;
 import com.green.spring_board.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,7 +31,9 @@ public class BoardService {
     private LikeRepository likeRepository;
 
     //전체 조회
-    public Page<BoardResponse> getAllBoards(int userId, int page, int size, String order) {
+    public Page<BoardResponse> getAllBoards(int page, int size, String order) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int userId = userRepository.findByUsername(username).getId();
 
         //정렬 옵션 만들기
         Sort sort;
@@ -74,7 +77,9 @@ public class BoardService {
         return new PageImpl<>(boardResponses, pageable, boards.getTotalElements());
     }
     // 내 게시글 조회
-    public List<BoardResponse> getMyBoards(int userId) {
+    public List<BoardResponse> getMyBoards() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int userId = userRepository.findByUsername(username).getId();
         List<Board> boards = boardRepository.findByUserIdAndIsDeletedFalse(userId);
 
         //1. List<BoardResponse> 형태의 빈 리스트 생성
@@ -102,8 +107,12 @@ public class BoardService {
     }
 
     //상세 조회
-    public BoardResponse getBoard(int id, int userId) {
+    public BoardResponse getBoard(int id) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int userId = userRepository.findByUsername(username).getId();
+
         Optional<Board> optionalBoard = boardRepository.findById(id);
+
         if (optionalBoard.isEmpty()) {
             // 요청한 게시글을 찾지 못한 경우
             throw new ResourceNotFoundException("요청한 게시글을 찾지 못했습니다");
@@ -114,9 +123,9 @@ public class BoardService {
             throw new ResourceNotFoundException("삭제된 게시글입니다");
         }
 
-
         User user = board.getUser();
         System.out.println(user.getNickname());
+
         board.setHits(board.getHits() + 1);
         boardRepository.save(board);
 
@@ -135,7 +144,10 @@ public class BoardService {
         );
     }
 
-    public int createBoard(BoardCreateRequest boardCreateRequest, Integer userId) {
+    public int createBoard(BoardCreateRequest boardCreateRequest) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int userId = userRepository.findByUsername(username).getId();
+
 
         //userId 유효성 체크(해당 userId의 유저가 정상적으로 존재하는지)
         //TODO :: 이후 삭제/탈퇴 유저에 대한 검증도 추가 필요
@@ -155,8 +167,10 @@ public class BoardService {
         return savedBoard.getId();
     }
     //수정
-    public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest, int userId
+    public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest
     ){
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        int userId = userRepository.findByUsername(username).getId();
         Optional<Board> optionalBoards = boardRepository.findById(id);
         if (optionalBoards.isEmpty()) {
             // 게시글을 못 찾은 경우
@@ -183,8 +197,10 @@ public class BoardService {
 
         }
         // 삭제
-        public void deleteBoard(int id, int userId) {
-           Optional<Board> optionalBoard  = boardRepository.findById(id);
+        public void deleteBoard(int id) {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            int userId = userRepository.findByUsername(username).getId();
+        Optional<Board> optionalBoard  = boardRepository.findById(id);
 
             if (optionalBoard.isEmpty()) {
                 throw new ResourceNotFoundException("게시글을 찾을 수 없습니다");
@@ -200,21 +216,18 @@ public class BoardService {
 
         }
 
-        public void pressLike(int id, int userId) {
+        public void pressLike(int id) {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByUsername(username);
             //게시글 존제 여부 확인
             Optional<Board> optionalBoard  = boardRepository.findById(id);
             if (optionalBoard.isEmpty()) {
                 throw new ResourceNotFoundException("존재하지 않는 게시물입니다");
             }
             Board board = optionalBoard.get();
-            Optional<User> optionalUser = userRepository.findById(userId);
-            if (optionalUser.isEmpty()) {
-                throw new ResourceNotFoundException("존재하지 않는 유저입니다");
-            }
-            User user = optionalUser.get();
 
             //1. 이 유저와 보드로 동일한 좋아요가 있는지 확인
-            Optional<Like> likeOptional = likeRepository.findByUserIdAndBoardId(userId, id);
+            Optional<Like> likeOptional = likeRepository.findByUserIdAndBoardId(user.getId(),id);
             if (likeOptional.isEmpty()) {
                 //3. 없으면 좋아요 추가
                 Like like = new Like();

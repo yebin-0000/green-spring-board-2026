@@ -9,5 +9,6 @@ import org.springframework.stereotype.Service;
 @Setter
 @AllArgsConstructor
 public class LoginResponse {
-    private String accessToken;
+    private String accessToken; // 액세스 토큰
+    private String refreshToken;
 }
