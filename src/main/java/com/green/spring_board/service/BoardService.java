@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,7 @@ public class BoardService {
     private LikeRepository likeRepository;
 
     //전체 조회
+    @Transactional(readOnly = true)
     public Page<BoardResponse> getAllBoards(int page, int size, String order) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         int userId = userRepository.findByUsername(username).getId();
@@ -76,7 +78,9 @@ public class BoardService {
         //.3 1번에서 만든 리스트에 추가
         return new PageImpl<>(boardResponses, pageable, boards.getTotalElements());
     }
+
     // 내 게시글 조회
+    @Transactional (readOnly = true)
     public List<BoardResponse> getMyBoards() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         int userId = userRepository.findByUsername(username).getId();
@@ -107,6 +111,7 @@ public class BoardService {
     }
 
     //상세 조회
+    @Transactional
     public BoardResponse getBoard(int id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         int userId = userRepository.findByUsername(username).getId();
@@ -144,6 +149,7 @@ public class BoardService {
         );
     }
 
+    @Transactional
     public int createBoard(BoardCreateRequest boardCreateRequest) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         int userId = userRepository.findByUsername(username).getId();
@@ -166,7 +172,9 @@ public class BoardService {
 
         return savedBoard.getId();
     }
+
     //수정
+    @Transactional
     public void updateBoard(int id, BoardUpdateRequest boardUpdateRequest
     ){
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -195,9 +203,11 @@ public class BoardService {
             boardRepository.save(board);
 
 
-        }
-        // 삭제
-        public void deleteBoard(int id) {
+    }
+
+    // 삭제
+    @Transactional
+    public void deleteBoard(int id) {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             int userId = userRepository.findByUsername(username).getId();
         Optional<Board> optionalBoard  = boardRepository.findById(id);
@@ -214,9 +224,10 @@ public class BoardService {
             board.setDeleted(true);
             boardRepository.save(board);
 
-        }
+    }
 
-        public void pressLike(int id) {
+    @Transactional
+    public void pressLike(int id) {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByUsername(username);
             //게시글 존제 여부 확인
@@ -245,8 +256,9 @@ public class BoardService {
                 board.setLikeCount(board.getLikeCount() - 1);
                 boardRepository.save(board);
             }
-        }
-        public LikeDetailResponse getLikeDetail(int id) {
+    }
+
+    public LikeDetailResponse getLikeDetail(int id) {
             //1. 이 게시글에 좋아요 누른 유저 정보들을 Like 테이블에서 싹 가져옴
             List<Like> likes = likeRepository.findByBoardId(id);
             //2. 걔네 닉네임 하나하나 뽑아서, LikeDetailResponse에 집어넣음
@@ -258,5 +270,32 @@ public class BoardService {
             likeDetailResponse.setLikedUsernames(nicknames);
             //3. 끝
             return likeDetailResponse;
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoardResponse> search(String keyword) {
+        List<Board> boards = boardRepository.searchByTitle(keyword);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username);
+        List<Integer> likedBoardIds = likeRepository.findLikedBoardIdsByUserId(user.getId());
+
+        List<BoardResponse> response = new ArrayList<>();
+
+        for (Board board: boards) {
+            BoardResponse newBoard = new BoardResponse (
+                    board.getId(),
+                    board.getTitle(),
+                    board.getContent(),
+                    board.getHits(),
+                    board.getLikeCount(),
+                    likedBoardIds.contains(board.getId()),
+                    board.getUser().getId(),
+                    board.getUser().getNickname(),
+                    board.getCreatedDatetime(),
+                    board.getUpdatedDatetime()
+            );
+            response.add(newBoard);
         }
+        return response;
+    }
 }

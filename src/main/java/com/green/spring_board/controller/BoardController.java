@@ -106,4 +106,13 @@ public class BoardController {
         LikeDetailResponse response = boardService.getLikeDetail(id);
         return  ResponseEntity.ok(ApiResponse.ok(response));
     }
+    // 포스트맨에서 search?keyword=찾아볼 문자 로 검색
+    // Params 에서 key에는 keyword, Value 에는 실제 찾아볼 문자 넣기
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<BoardResponse>>> searchPosts(
+            @RequestParam String keyword
+    ) {
+        List<BoardResponse> response = boardService.search(keyword);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 }

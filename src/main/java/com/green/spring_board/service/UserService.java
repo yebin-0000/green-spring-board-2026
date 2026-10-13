@@ -39,6 +39,7 @@ public class UserService {
     private final AccessTokenBlacklistRepository accessTokenBlacklistRepository;
 
 
+    @Transactional
     public void signup(SignupRequest signupRequest) {
         //회원가입 로직 만들기
 
@@ -63,6 +64,7 @@ public class UserService {
         user.setState(UserState.ACTIVE);
         userRepository.save(user);
     }
+
     @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
 
@@ -204,6 +206,7 @@ public class UserService {
         }
     }
 
+    @Transactional
     public void deleteUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username);
