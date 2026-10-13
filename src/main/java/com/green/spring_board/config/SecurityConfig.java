@@ -52,10 +52,11 @@ public class SecurityConfig {
                                 .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+                       // 로그인 회원가입 토큰 재발급 허용
                         .requestMatchers(
                                 "/api/user/signup",
-                                "/api/user/login"
-                                //"/api/auth/refresh"
+                                "/api/user/login",
+                                "/api/auth/refresh"
                         ).permitAll()
                         // Swagger URL 허용
                         .requestMatchers(

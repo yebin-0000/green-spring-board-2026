@@ -50,16 +50,29 @@ public class UserController {
         세션이 없다고 세션을 만들지 않도록 getSession 안에 (false) 옵션을 추가한다*/
 
         MyInfoResponse response = userService.getUserInfo();
-
-        return ResponseEntity.ok(ApiResponse.ok());
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-
+            @RequestHeader("Authorization") String authorization
     ) {
+        String accessToken = authorization.substring(7);
+        userService.logout(accessToken);
         return ResponseEntity.ok(ApiResponse.ok());
 
     }
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<RefreshResponse>> refresh(
+            @Valid @RequestBody RefreshRequest refreshRequest
+    ) {
+        // 리프레시 토큰을 이용해 새로운 액세스 토큰을 재발급 받는 API
+        RefreshResponse response = userService.refresh(refreshRequest);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+        // 1. 리프레시 토큰을 가지고 있나 확인
+        // 2. 새로운 액세스 토큰 발급
+
+    }
+
     @PatchMapping
     public ResponseEntity<ApiResponse<Void>> updateUserInfo(
             @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
